@@ -49,7 +49,7 @@
   :type '(repeat string)
   :group 'nix-converter)
 
-(defcustom nix-converter-buffer-name nil
+(defcustom nix-converter-buffer-name "nix-converter"
   "Dedicated buffer for the nix-converter execution result"
   :type '(string)
   :group 'nix-converter)
@@ -92,8 +92,10 @@ argument."
   "Build the full nix-converter command line."
   (when (and (string-empty-p file) (string-empty-p content))
     (error "FILE or CONTENT must be non-empty strings"))
-  (let* ((flags (apply
-		 'nix-converter--build-command-line-flags language file from-nix flags))
+  (let* ((flags
+	  (apply
+	   'nix-converter--build-command-line-flags
+	   language file from-nix flags))
 	 (command-line-list (list nix-converter-executable flags)))
     (when content
       (setq command-line-list
@@ -107,8 +109,10 @@ argument."
 string."
   (unless nix-converter-executable
     (error "Unable to find nix-converter executable"))
-  (let* ((command-line (apply
-			'nix-converter--build-command-line language file content from-nix flags))
+  (let* ((command-line
+	  (apply
+	   'nix-converter--build-command-line
+	   language file content from-nix flags))
 	 ;; Here we are using the `shell-command-to-string' function
 	 ;; because a shell interpreter is needed. Indeed, the echo
 	 ;; function/program could be needed if the is non-nil.
@@ -146,7 +150,8 @@ FLAGS are additional command line flags."
    (append
     (list (read-file-name "File:"))
     (nix-converter--default-prompt)))
-  (let ((result (apply 'nix-converter--run language file nil from-nix flags)))
+  (let* ((absolute-path (file-truename file))
+	 (result (apply 'nix-converter--run language absolute-path nil from-nix flags)))
     (when (called-interactively-p)
       (nix-converter--insert-to-buffer result))
     result))
@@ -166,7 +171,6 @@ FLAGS are additional command line flags."
     (when (called-interactively-p)
       (nix-converter--insert-to-buffer result))
     result))
-
 ;; See https://github.com/protesilaos/denote/blob/a31969fea285a0fc7593fec8ab905ecabb2d7c5e/denote.el#L5274-L5288
 (defun nix-converter--get-active-region-content ()
   "Return the text of the active region, else nil."
