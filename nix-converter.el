@@ -49,8 +49,16 @@
   :type '(repeat string)
   :group 'nix-converter)
 
+(defcustom nix-converter-buffer-name nil
+  "Dedicated buffer for the nix-converter execution result"
+  :type '(string)
+  :group 'nix-converter)
+
 (defconst nix-converter-languages '("json" "yaml" "toml")
   "Possible nix-converter values for the language argument.")
+
+(defconst nix-converter-default-language "json"
+  "Default nix-converter language.")
 
 (defconst nix-converter-error-regexp "^[0-9]\\{4\\}/[0-9]\\{2\\}/[0-9]\\{2\\} [0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}"
   "Regular expression to match any nix-converter error.")
@@ -70,9 +78,9 @@ argument."
   (unless (member language nix-converter-languages)
     (error "LANGUAGE must be one of the following values `%S" nix-converter-languages))
   (let ((flag-list nil))
-    (when file
+    (unless (string-empty-p file)
       (setq flag-list (append flag-list (list "--filename" (nix-converter--make-safe-argument file)))))
-    (when from-nix
+    (unless (string-empty-p from-nix)
       (setq flag-list (append flag-list '("--from-nix"))))
     ;; Adding LANGUAGE and FLAGS at this level
     (setq flag-list (append flag-list (list "--language" (nix-converter--make-safe-argument language)) flags))
@@ -103,33 +111,99 @@ string."
 			'nix-converter--build-command-line language file content from-nix flags))
 	 ;; Here we are using the `shell-command-to-string' function
 	 ;; because a shell interpreter is needed. Indeed, the echo
-	 ;; function could be needed if the is non-nil.
+	 ;; function/program could be needed if the is non-nil.
 	 (output (string-trim (shell-command-to-string command-line))))
     (when (string-match-p nix-converter-error-regexp output)
       (error "The following error occured during the nix-converter execution: %s" output))
     output))
 
+(defun nix-converter--text-prompt (prompt &rest default)
+  "Read a string with a formatted prompt, then returns the read value."
+  (read-string (format-prompt prompt default) nil nil default))
+
+(defun nix-converter--default-prompt ()
+  "Returns a list of `nix-converter--text-prompt' function calls. It read
+values for the language and the from-nix nix-converter parameters."
+  (list
+   (nix-converter--text-prompt "Language" nix-converter-default-language)
+   (nix-converter--text-prompt "Is the source language Nix ? (No by default)")))
+
+(defun nix-converter--insert-to-buffer (msg)
+  "Creates a temporary buffer then inserts MSG if it's a string"
+  (when (stringp msg)
+    (with-output-to-temp-buffer nix-converter-buffer-name
+      (pop-to-buffer nix-converter-buffer-name)
+      (insert msg))))
+
 (defun nix-converter-run-with-file (file language &optional from-nix &rest flags)
-  "Run nix-converter with a filepath as input and returns the output as
-string.
+  "Run nix-converter with a filepath as input and returns the conversion
+result as string.
 FILE is the filepath.
 LANGUAGE is the second language, see `nix-converter-languages' for more defails.
 If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE.
 FLAGS are additional command line flags."
-  (apply 'nix-converter--run language file nil from-nix flags))
+  (interactive
+   (append
+    (list (read-file-name "File:"))
+    (nix-converter--default-prompt)))
+  (let ((result (apply 'nix-converter--run language file nil from-nix flags)))
+    (when (called-interactively-p)
+      (nix-converter--insert-to-buffer result))
+    result))
 
 (defun nix-converter-run-with-content (content language &optional from-nix &rest flags)
   "Run nix-converter with the content to convert as input and returns the
-output as string.
+conversion result as string.
 CONTENT is the content to convert.
 LANGUAGE is the second language, see `nix-converter-languages' for more defails.
 If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE.
 FLAGS are additional command line flags."
-  (apply 'nix-converter--run language nil content from-nix flags))
+  (interactive
+   (append
+    (list (nix-converter--text-prompt "Language expression"))
+    (nix-converter--default-prompt)))
+  (let ((result (apply 'nix-converter--run language nil content from-nix flags)))
+    (when (called-interactively-p)
+      (nix-converter--insert-to-buffer result))
+    result))
+
+;; See https://github.com/protesilaos/denote/blob/a31969fea285a0fc7593fec8ab905ecabb2d7c5e/denote.el#L5274-L5288
+(defun nix-converter--get-active-region-content ()
+  "Return the text of the active region, else nil."
+  (when-let* ((_ (region-active-p))
+              (beg (region-beginning))
+              (end (region-end))
+              (contents (buffer-substring-no-properties beg end))
+              (_ (not (string-blank-p contents))))
+    (string-trim contents)))
+
+(defun nix-converter--delete-active-region-content ()
+  "Delete the content of the active region, if any."
+  (when-let* ((_ (region-active-p))
+              (beg (region-beginning))
+              (end (region-end)))
+    (delete-region beg end)))
+
+(defun nix-converter-run-with-region (language &optional from-nix)
+  "Run nix-converter with a region as input and returns the conversion
+result as string.
+LANGUAGE is the second language, see `nix-converter-languages' for more defails.
+If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
+  (interactive (nix-converter--default-prompt))
+  (let* ((content (nix-converter--get-active-region-content))
+	 (result (nix-converter-run-with-content content language from-nix)))
+    (when (called-interactively-p)
+      (nix-converter--insert-to-buffer result))
+    result))
 
 (defun nix-converter-convert-region (language &optional from-nix)
-  ;; TODO
-  )
+  "Convert the current region with the nix-converter result.
+LANGUAGE is the second language, see `nix-converter-languages' for more defails.
+If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
+  (interactive (nix-converter--default-prompt))
+  (let ((result (nix-converter-run-with-region language from-nix)))
+    (nix-converter--delete-active-region-content)
+    (insert result)))
 
 (provide 'nix-converter)
 
