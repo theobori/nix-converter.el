@@ -7,7 +7,7 @@
 ;; Keywords: tools
 ;; URL: https://github.com/theobori/nix-converter.el
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "30.2"))
+;; Package-Requires: ((emacs "28.2"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -71,6 +71,11 @@
   (setq surrounder (or surrounder nix-converter-default-argument-surrounder))
   (concat surrounder argument surrounder))
 
+(defun nix-converter--empty-string-p (string)
+  "Return true if the STRING is empty or nil. Expects string type."
+  (or (null string)
+      (zerop (length (string-trim string)))))
+
 (defun nix-converter--build-command-line-flags (language &optional file from-nix &rest flags)
   "Build the nix-converter command line flags, it returns a formatted
 command line as string representing each parameters bound to its
@@ -78,9 +83,9 @@ argument."
   (unless (member language nix-converter-languages)
     (error "LANGUAGE must be one of the following values `%S" nix-converter-languages))
   (let ((flag-list nil))
-    (unless (string-empty-p file)
+    (unless (nix-converter--empty-string-p file)
       (setq flag-list (append flag-list (list "--filename" (nix-converter--make-safe-argument file)))))
-    (unless (string-empty-p from-nix)
+    (unless (nix-converter--empty-string-p from-nix)
       (setq flag-list (append flag-list '("--from-nix"))))
     ;; Adding LANGUAGE and FLAGS at this level
     (setq flag-list (append flag-list (list "--language" (nix-converter--make-safe-argument language)) flags))
@@ -90,7 +95,10 @@ argument."
 
 (defun nix-converter--build-command-line (language &optional file content from-nix &rest flags)
   "Build the full nix-converter command line."
-  (when (and (string-empty-p file) (string-empty-p content))
+  (when
+      (and
+       (nix-converter--empty-string-p file)
+       (nix-converter--empty-string-p content))
     (error "FILE or CONTENT must be non-empty strings"))
   (let* ((flags
 	  (apply
@@ -130,7 +138,7 @@ string."
 values for the language and the from-nix nix-converter parameters."
   (list
    (nix-converter--text-prompt "Language" nix-converter-default-language)
-   (nix-converter--text-prompt "Is the source language Nix ? (No by default)")))
+   (nix-converter--text-prompt "Is the source language Nix? (no)")))
 
 (defun nix-converter--insert-to-buffer (msg)
   "Creates a temporary buffer then inserts MSG if it's a string"
@@ -152,7 +160,7 @@ FLAGS are additional command line flags."
     (nix-converter--default-prompt)))
   (let* ((absolute-path (file-truename file))
 	 (result (apply 'nix-converter--run language absolute-path nil from-nix flags)))
-    (when (called-interactively-p)
+    (when (called-interactively-p 'any)
       (nix-converter--insert-to-buffer result))
     result))
 
@@ -168,9 +176,10 @@ FLAGS are additional command line flags."
     (list (nix-converter--text-prompt "Language expression"))
     (nix-converter--default-prompt)))
   (let ((result (apply 'nix-converter--run language nil content from-nix flags)))
-    (when (called-interactively-p)
+    (when (called-interactively-p 'any)
       (nix-converter--insert-to-buffer result))
     result))
+
 ;; See https://github.com/protesilaos/denote/blob/a31969fea285a0fc7593fec8ab905ecabb2d7c5e/denote.el#L5274-L5288
 (defun nix-converter--get-active-region-content ()
   "Return the text of the active region, else nil."
@@ -196,7 +205,7 @@ If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
   (interactive (nix-converter--default-prompt))
   (let* ((content (nix-converter--get-active-region-content))
 	 (result (nix-converter-run-with-content content language from-nix)))
-    (when (called-interactively-p)
+    (when (called-interactively-p 'any)
       (nix-converter--insert-to-buffer result))
     result))
 
