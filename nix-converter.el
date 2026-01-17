@@ -37,10 +37,84 @@
   :group 'external
   :link "https://github.com/theobori/nix-converter.el")
 
+;;;; User options
+
 (defcustom nix-converter-executable (executable-find "nix-converter")
   "Nix-converter executable."
   :type 'string
   :group 'nix-converter)
+
+(defcustom nix-converter-command-line-flags nil
+  "List of command line flags for nix-converter."
+  :type '(repeat string)
+  :group 'nix-converter)
+
+(defconst nix-converter-languages '("json" "yaml" "toml")
+  "Possible nix-converter values for the language argument.")
+
+(defconst nix-converter-error-regexp "^[0-9]\\{4\\}/[0-9]\\{2\\}/[0-9]\\{2\\} [0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}"
+  "Regular expression to match any nix-converter error.")
+
+(defconst nix-converter-default-argument-surrounder "\""
+  "Default nix-converter argument surrounder.")
+
+(defun nix-converter--make-safe-argument (argument &optional surrounder)
+  "Description."
+  (setq surrounder (or surrounder nix-converter-default-argument-surrounder))
+  (concat surrounder argument surrounder))
+
+(defun nix-converter--build-command-line-flags (file from-nix language &rest flags)
+  "Build the nix-converter command line flags, it returns a formatted
+string from FLAGS which is a list of string."
+  (unless (member language nix-converter-languages)
+    (error "LANGUAGE must be one of the following values `%S" nix-converter-languages))
+  ;; Please keep the same inserion order as the function arguments.
+  (let ((flag-list nil))
+    (when file
+      (setq flag-list (append flag-list (list "--filename" (nix-converter--make-safe-argument file)))))
+    (when from-nix
+      (setq flag-list (append flag-list '("--from-nix"))))
+    ;; Adding LANGUAGE and FLAGS at this level
+    (setq flag-list (append flag-list (list "--language" (nix-converter--make-safe-argument language)) flags))
+    (when nix-converter-command-line-flags
+      (setq flag-list (append flag-list nix-converter-command-line-flags)))
+    (string-join flag-list " ")))
+
+(defun nix-converter--build-command-line (file content from-nix language &rest flags)
+  "Description."
+  (when (and (string-empty-p file) (string-empty-p content))
+    (error "FILE or CONTENT must be non-empty strings"))
+  (let* ((flags (apply
+		 'nix-converter--build-command-line-flags file from-nix language flags))
+	 (command-line-list (list nix-converter-executable flags)))
+    (when content
+      (setq command-line-list
+	    (append
+	     (list "echo" "-n" (nix-converter--make-safe-argument content "'") "|")
+	     command-line-list)))
+    (string-join command-line-list " ")))
+
+(defun nix-converter--run (file content from-nix language &rest flags)
+  "Description."
+  (unless nix-converter-executable
+    (error "Unable to find nix-converter executable"))
+  (let* ((command-line (apply
+			'nix-converter--build-command-line file content from-nix language flags))
+	 ;; Here we are using the `shell-command-to-string' function
+	 ;; because a shell interpreter is needed. Indeed, the echo
+	 ;; function could be needed if the is non-nil.
+	 (output (string-trim (shell-command-to-string command-line))))
+    (when (string-match-p nix-converter-error-regexp output)
+      (error "The following error occured during the nix-converter execution: %s" output))
+    output))
+
+(defun nix-converter-run-with-file (file from-nix language &rest flags)
+  "Description."
+  (apply 'nix-converter--run file nil from-nix language flags))
+
+(defun nix-converter-run-with-content (content from-nix language &rest flags)
+  "Description."
+  (apply 'nix-converter--run nil content from-nix language flags))
 
 (provide 'nix-converter)
 
