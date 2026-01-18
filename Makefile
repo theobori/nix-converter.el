@@ -6,7 +6,7 @@ EMACS_USER_DIR != ${EMACS_EVAL} "(princ (string-trim-right user-emacs-directory 
 
 PACKAGE_NAME = nix-converter
 
-INSTALL_DIR=${EMACS_USER_DIR}/manual-packages/${PACKAGE_NAME}
+INSTALL_DIR = ${EMACS_USER_DIR}/manual-packages/${PACKAGE_NAME}
 
 SOURCE_FILES = nix-converter.el
 OBJECT_FILES = ${SOURCE_FILES:.el=.elc}
