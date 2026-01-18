@@ -7,7 +7,7 @@
 ;; Keywords: tools
 ;; URL: https://github.com/theobori/nix-converter.el
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "28.2"))
+;; Package-Requires: ((emacs "30.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -72,9 +72,8 @@
   (concat surrounder argument surrounder))
 
 (defun nix-converter--empty-string-p (string)
-  "Return true if the STRING is empty or nil. Expects string type."
-  (or (null string)
-      (zerop (length (string-trim string)))))
+  "Return true if the STRING is empty or nil."
+  (or (null string) (string= string "")))
 
 (defun nix-converter--build-command-line-flags (language &optional file from-nix &rest flags)
   "Build the nix-converter command line flags, it returns a formatted

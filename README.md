@@ -1,27 +1,21 @@
 # A Emacs conversion tool based on nix-converter
 
-[![build](https://github.com/theobori/nix-converter.el/actions/workflows/build.yml/badge.svg)](https://github.com/theobori/nix-converter.el/actions/workflows/build.yml)
+[![build-then-test](https://github.com/theobori/nix-converter.el/actions/workflows/build-then-test.yml/badge.svg)](https://github.com/theobori/nix-converter.el/actions/workflows/build-then-test.yml)
 
 [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
-nix-converter.el is a Emacs package which contains a conversion tool based on nix-converter, it exposes an Emacs Lisp API that communicates with the nix-converter CLI. The idea is to be able to convert Nix code into a configuration language and vice versa from Emacs. nix-converter.el, for example, converts the text of the active region into a destination language.
+nix-converter.el is a Emacs package which contains a conversion tool based on nix-converter, it provides an Emacs Lisp API that communicates with the nix-converter CLI. The idea is to be able to convert Nix code into a configuration language and vice versa from Emacs. nix-converter.el, for example, converts the text of the active region into a destination language.
 
 ## Getting started
 
-To use the project you need [Emacs](https://www.gnu.org/software/emacs/) with a version higher than `28.2`.
+To use the project you need [Emacs](https://www.gnu.org/software/emacs/) with a version higher or equal than `30.1` and [GNU Make](https://www.gnu.org/software/make/) if you want to build and install it manually.
 
 ## Installation
 
 The package has not yet been published on a Package Archive. To install it manually, download the code from this [GitHub repository](https://github.com/theobori/nix-converter.el) and then load it. To do this, you can use the following command lines.
 
 ```bash
-EMACSDIR=$(emacs -Q --batch --eval "(princ user-emacs-directory)")
-DESTDIR=${EMACSDIR}manual-packages
-
-mkdir -p ${DESTDIR}
-cd ${DESTDIR}
-git clone https://github.com/theobori/nix-converter.el nix-converter
-cd -
+make install
 ```
 
 Then you can evaluate the following ELisp expression.
