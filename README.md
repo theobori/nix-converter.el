@@ -50,6 +50,15 @@ You can use the dedicated command `nix-converter-run-with-content` or you can ca
 ;; Convert from Nix to JSON
 (nix-converter-run-with-content "[ 123 3 1 ]" "json" t)
 ```
+### Convert multiple YAML files
+
+Let's say you have Kubernetes declarations in several YAML files and you want to convert them to Nix, you could use code like below.
+
+```emacs-lisp
+(dolist (yaml-file (directory-files-recursively "<directory-path>" ".*\\(yaml\\|yml\\)" t))
+  (with-temp-file (concat (file-name-sans-extension yaml-file) ".nix")
+    (insert (nix-converter-run-with-file yaml-file "yaml"))))
+```
 
 ## Contribute
 

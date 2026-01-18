@@ -57,7 +57,16 @@ handling."
 line."
   (should (string-equal
 	   (format "echo -n '[ 1 2 3 ]' | %s --from-nix --language \"json\"" nix-converter-executable)
-	   (nix-converter--build-command-line "json" nil "[ 1 2 3 ]" t))))
+	   (nix-converter--build-command-line "json" nil "[ 1 2 3 ]" t)))
+  (should-error (nix-converter--build-command-line "json" nil nil))
+  (should-error (nix-converter--build-command-line "json" "" ""))
+  (should-error (nix-converter--build-command-line "json" "" nil))
+  (should-error (nix-converter--build-command-line "json" nil "")))
+
+(ert-deftest test-nix-converter--run ()
+  "Test that `nix-converter--run' is able to handle nix-converter execution
+error"
+  (should-error (nix-converter--run "json" nil "[1,2,]")))
 
 (provide 'nix-converter-test)
 

@@ -155,7 +155,7 @@ If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE.
 FLAGS are additional command line flags."
   (interactive
    (append
-    (list (read-file-name "File:"))
+    (list (read-file-name "File: "))
     (nix-converter--default-prompt)))
   (let* ((absolute-path (file-truename file))
 	 (result (apply 'nix-converter--run language absolute-path nil from-nix flags)))
@@ -172,7 +172,7 @@ If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE.
 FLAGS are additional command line flags."
   (interactive
    (append
-    (list (nix-converter--text-prompt "Language expression"))
+    (list (nix-converter--text-prompt "Expression"))
     (nix-converter--default-prompt)))
   (let ((result (apply 'nix-converter--run language nil content from-nix flags)))
     (when (called-interactively-p 'any)
