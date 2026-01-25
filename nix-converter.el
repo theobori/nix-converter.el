@@ -86,7 +86,6 @@ argument."
       (setq flag-list (append flag-list (list "--filename" (nix-converter--make-safe-argument file)))))
     (unless (nix-converter--empty-string-p from-nix)
       (setq flag-list (append flag-list '("--from-nix"))))
-    ;; Adding LANGUAGE and FLAGS at this level
     (setq flag-list (append flag-list (list "--language" (nix-converter--make-safe-argument language)) flags))
     (when nix-converter-command-line-flags
       (setq flag-list (append flag-list nix-converter-command-line-flags)))
@@ -128,16 +127,35 @@ string."
       (error "The following error occured during the nix-converter execution: %s" output))
     output))
 
-(defun nix-converter--text-prompt (prompt &rest default)
+(defun nix-converter--text-prompt (prompt &optional default)
   "Read a string with a formatted prompt, then returns the read value."
   (read-string (format-prompt prompt default) nil nil default))
 
+(defun nix-converter--completing-prompt (prompt collection &optional default)
+  "Read a string with a formatted prompt, then returns the read value. It
+supports completion."
+  (completing-read (format-prompt prompt default) collection nil t nil nil default nil))
+
+(defun nix-converter--yes-or-no (string)
+  "Returns t if STRING is `yes' or `y', it's case insensitive."
+  (let ((s (string-trim string)))
+    (or (string-equal-ignore-case s "yes") (string-equal-ignore-case s "y"))))
+
+(defun nix-converter--yes-or-no-prompt (prompt &optional default)
+  "Read `yes' or `no' string then returns non-nil if it's not `no'.
+If DEFAULT is nil, the default value will be `no'."
+  (nix-converter--yes-or-no
+   (nix-converter--completing-prompt prompt '("yes" "no") (or default "no"))))
+
 (defun nix-converter--default-prompt ()
-  "Returns a list of `nix-converter--text-prompt' function calls. It read
+  "Returns a list of prompt function calls. It read
 values for the language and the from-nix nix-converter parameters."
   (list
-   (nix-converter--text-prompt "Language" nix-converter-default-language)
-   (nix-converter--text-prompt "Is the source language Nix? (no)")))
+   (nix-converter--completing-prompt
+    "Language"
+    nix-converter-languages
+    nix-converter-default-language)
+   (nix-converter--yes-or-no-prompt "Is Nix the source language?")))
 
 (defun nix-converter--insert-to-buffer (msg)
   "Creates a temporary buffer then inserts MSG if it's a string"
@@ -179,7 +197,6 @@ FLAGS are additional command line flags."
       (nix-converter--insert-to-buffer result))
     result))
 
-;; See https://github.com/protesilaos/denote/blob/a31969fea285a0fc7593fec8ab905ecabb2d7c5e/denote.el#L5274-L5288
 (defun nix-converter--get-active-region-content ()
   "Return the text of the active region, else nil."
   (when-let* ((_ (region-active-p))

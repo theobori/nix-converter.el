@@ -68,6 +68,14 @@ line."
 error"
   (should-error (nix-converter--run "json" nil "[1,2,]")))
 
+(ert-deftest test-nix-converter--yes-or-no ()
+  "Test that `nix-converter--yes-or-no' returns correct results."
+  (should (nix-converter--yes-or-no "yes"))
+  (should (nix-converter--yes-or-no "  YES      "))
+  (should (nix-converter--yes-or-no "y"))
+  (should-not (nix-converter--yes-or-no "no"))
+  (should-not (nix-converter--yes-or-no "anything")))
+
 (provide 'nix-converter-test)
 
 ;;; nix-converter-test.el ends here
