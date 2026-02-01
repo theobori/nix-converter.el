@@ -8,7 +8,7 @@ nix-converter.el is a Emacs package which contains a conversion tool based on ni
 
 ## Getting started
 
-To use the project you need [Emacs](https://www.gnu.org/software/emacs/) with a version higher or equal than `30.1` and [GNU Make](https://www.gnu.org/software/make/) if you want to build and install it manually.
+To use the project you need [Emacs](https://www.gnu.org/software/emacs/) with a version higher or equal than `30.1`, [nix-converter](https://github.com/theobori/nix-converter) and [GNU Make](https://www.gnu.org/software/make/) if you want to build and install it manually.
 
 ## Installation
 
@@ -56,8 +56,7 @@ Let's say you have Kubernetes declarations in several YAML files and you want to
 
 ```emacs-lisp
 (dolist (yaml-file (directory-files-recursively "<directory-path>" ".*\\(yaml\\|yml\\)" t))
-  (with-temp-file (concat (file-name-sans-extension yaml-file) ".nix")
-    (insert (nix-converter-run-with-file yaml-file "yaml"))))
+  (nix-converter-convert-file yaml-file "yaml"))
 ```
 
 ## Contribute

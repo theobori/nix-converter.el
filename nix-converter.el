@@ -54,6 +54,8 @@
   :type '(string)
   :group 'nix-converter)
 
+;;;; Constants
+
 (defconst nix-converter-languages '("json" "yaml" "toml")
   "Possible nix-converter values for the language argument.")
 
@@ -65,6 +67,8 @@
 
 (defconst nix-converter-default-argument-surrounder "\""
   "Default nix-converter argument surrounder.")
+
+;;;; Functions and Emacs user commands
 
 (defun nix-converter--make-safe-argument (argument &optional surrounder)
   "Make a command line ARGUMENT safe by surrounding it with a SURROUNDER."
@@ -147,14 +151,18 @@ If DEFAULT is nil, the default value will be `no'."
   (nix-converter--yes-or-no
    (nix-converter--completing-prompt prompt '("yes" "no") (or default "no"))))
 
-(defun nix-converter--default-prompt ()
+(defun nix-converter--language-prompt ()
+  "Read a string representing the language with a `completing-read'."
+  (nix-converter--completing-prompt
+    "Language"
+    nix-converter-languages
+    nix-converter-default-language))
+
+(defun nix-converter--default-prompts ()
   "Returns a list of prompt function calls. It read
 values for the language and the from-nix nix-converter parameters."
   (list
-   (nix-converter--completing-prompt
-    "Language"
-    nix-converter-languages
-    nix-converter-default-language)
+   (nix-converter--language-prompt)
    (nix-converter--yes-or-no-prompt "Is Nix the source language?")))
 
 (defun nix-converter--insert-to-buffer (msg)
@@ -165,7 +173,7 @@ values for the language and the from-nix nix-converter parameters."
       (insert msg))))
 
 (defun nix-converter-run-with-file (file language &optional from-nix &rest flags)
-  "Run nix-converter with a filepath as input and returns the conversion
+  "Run nix-converter with a FILE as input and returns the conversion
 result as string.
 FILE is the filepath.
 LANGUAGE is the second language, see `nix-converter-languages' for more defails.
@@ -174,7 +182,7 @@ FLAGS are additional command line flags."
   (interactive
    (append
     (list (read-file-name "File: "))
-    (nix-converter--default-prompt)))
+    (nix-converter--default-prompts)))
   (let* ((absolute-path (file-truename file))
 	 (result (apply 'nix-converter--run language absolute-path nil from-nix flags)))
     (when (called-interactively-p 'any)
@@ -182,7 +190,7 @@ FLAGS are additional command line flags."
     result))
 
 (defun nix-converter-run-with-content (content language &optional from-nix &rest flags)
-  "Run nix-converter with the content to convert as input and returns the
+  "Run nix-converter with CONTENT to convert as input and returns the
 conversion result as string.
 CONTENT is the content to convert.
 LANGUAGE is the second language, see `nix-converter-languages' for more defails.
@@ -191,7 +199,7 @@ FLAGS are additional command line flags."
   (interactive
    (append
     (list (nix-converter--text-prompt "Expression"))
-    (nix-converter--default-prompt)))
+    (nix-converter--default-prompts)))
   (let ((result (apply 'nix-converter--run language nil content from-nix flags)))
     (when (called-interactively-p 'any)
       (nix-converter--insert-to-buffer result))
@@ -218,7 +226,7 @@ FLAGS are additional command line flags."
 result as string.
 LANGUAGE is the second language, see `nix-converter-languages' for more defails.
 If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
-  (interactive (nix-converter--default-prompt))
+  (interactive (nix-converter--default-prompts))
   (let* ((content (nix-converter--get-active-region-content))
 	 (result (nix-converter-run-with-content content language from-nix)))
     (when (called-interactively-p 'any)
@@ -229,10 +237,42 @@ If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
   "Convert the current region with the nix-converter result.
 LANGUAGE is the second language, see `nix-converter-languages' for more defails.
 If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
-  (interactive (nix-converter--default-prompt))
+  (interactive (nix-converter--default-prompts))
   (let ((result (nix-converter-run-with-region language from-nix)))
     (nix-converter--delete-active-region-content)
     (insert result)))
+
+(defun nix-converter-convert-file-custom (file-source file-destination language &optional from-nix &rest flags)
+  "Convert FILE-SOURCE then write the conversion result to a custom
+FILE-DESTINATION.
+LANGUAGE is the second language, see `nix-converter-languages' for more defails.
+If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
+  (interactive
+   (append
+    (list (read-file-name "File source: "))
+    (list (read-file-name "File destination: "))
+    (nix-converter--default-prompts)))
+  (with-temp-file file-destination
+    (insert (apply
+	     'nix-converter-run-with-file
+	     file-source language from-nix flags))))
+
+(defun nix-converter-convert-file (file language &rest flags)
+  "Convert FILE-SOURCE then, write the conversion result next to
+FILE-SOURCE with appropriate file extension.
+LANGUAGE is the second language, see `nix-converter-languages' for more defails.
+If FROM-NIX is non-nil, it will convert from Nix to LANGUAGE."
+  (interactive
+   (list
+    (read-file-name "File: ")
+    (nix-converter--language-prompt)))
+  (let* ((from-nix (string-equal (file-name-extension file) "nix"))
+	 (file-sans-ext (file-name-sans-extension file))
+	 (file-destination (concat file-sans-ext
+			     "." (if from-nix language "nix"))))
+    (apply
+     'nix-converter-convert-file-custom
+     file file-destination language from-nix flags)))
 
 (provide 'nix-converter)
 
