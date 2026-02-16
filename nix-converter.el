@@ -35,7 +35,7 @@
   "A conversion tool based on nix-converter"
   :group 'tools
   :group 'external
-  :link "https://github.com/theobori/nix-converter.el")
+  :link '(url-link :tag "GitHub Repositoru" "https://github.com/theobori/nix-converter.el"))
 
 ;;;; User options
 
