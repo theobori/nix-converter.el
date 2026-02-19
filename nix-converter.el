@@ -183,7 +183,7 @@ FLAGS are additional command line flags."
    (append
     (list (read-file-name "File: "))
     (nix-converter--default-prompts)))
-  (let* ((absolute-path (file-truename file))
+  (let* ((absolute-path (expand-file-name file))
 	 (result (apply 'nix-converter--run language absolute-path nil from-nix flags)))
     (when (called-interactively-p 'any)
       (nix-converter--insert-to-buffer result))
